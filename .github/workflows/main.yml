@@ -1,0 +1,80 @@
+name: Universal Auto Deploy (Web & APK)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # يتيح لك تشغيل البناء يدوياً من GitHub
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Java (Required for APK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 1. معالجة الملفات وتنظيم الهيكل
+      - name: Extract & Organize Files
+        run: |
+          if ls *.zip 1> /dev/null 2>&1; then
+            unzip -o *.zip -d ./temp_extracted
+            ROOT_DIR=$(find ./temp_extracted -name "package.json" -exec dirname {} \;)
+            cp -r $ROOT_DIR/. ./
+            rm -rf temp_extracted
+          fi
+
+      # 2. بناء الويب (Vite/React)
+      - name: Build Web
+        run: |
+          npm install --legacy-peer-deps
+          npm run build --if-present
+
+      # 3. بناء الأندرويد واستخراج APK
+      - name: Build Android APK
+        run: |
+          # تنصيب كاباسيتور إذا لم يكن موجوداً
+          if [ ! -d "android" ]; then
+            npm install @capacitor/core @capacitor/cli @capacitor/android
+            npx cap add android
+          fi
+          
+          # مزامنة الملفات
+          npx cap sync android
+          
+          # الدخول لمجلد أندرويد وبناء التطبيق
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      # 4. رفع الـ APK كملف جاهز للتحميل (Artifacts)
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tamata-App-Debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # 5. تجهيز ورفع الويب لـ GitHub Pages
+      - name: Upload Web Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist # تأكد أن مجلد البناء عندك اسمه dist أو build
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
