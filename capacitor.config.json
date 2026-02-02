@@ -1,8 +1,7 @@
-
 {
-  "appId": "com.tamata.store",
-  "appName": "Tamata",
-  "webDir": ".",
+  "appId": "com.tamata.app",
+  "appName": " Tamata",
+  "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https",
