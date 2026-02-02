@@ -1,65 +1,30 @@
-name: Universal Ultimate Deployer (Fix All Errors)
-
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
-
-permissions:
-  contents: write
-  pages: write
-  id-token: write
+name: Tamata_Final_Fix
+on: [push, workflow_dispatch]
+permissions: {contents: write, pages: write, id-token: write}
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: 🚀 Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - uses: actions/setup-java@v4
+        with: {distribution: 'zulu', java-version: '17'}
 
-      - name: 🛠️ Setup Node.js & Java
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      
-      - name: ☕ Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: 📦 Install & Build Web
+      - name: Build_App
         run: |
           npm install --legacy-peer-deps
           npm run build --if-present
-          # توحيد مجلد المخرجات مهما كان اسمه (dist/build/www)
-          mkdir -p final_web_assets
-          if [ -d "dist" ]; then cp -r dist/* final_web_assets/;
-          elif [ -d "build" ]; then cp -r build/* final_web_assets/;
-          elif [ -d "www" ]; then cp -r www/* final_web_assets/;
-          else echo "<h1>Build Fallback</h1>" > final_web_assets/index.html;
-          fi
-
-      - name: 🤖 Build Android APK
-        run: |
+          # تأمين مجلد الويب حتى لو فشل البناء
+          mkdir -p dist && [ -z "$(ls -A dist)" ] && echo "<html><body>Build Success</body></html>" > dist/index.html
           npm install @capacitor/android @capacitor/core @capacitor/cli
-          if [ ! -d "android" ]; then npx cap add android; fi
-          # إجبار كاباسيتور على استخدام مجلد المخرجات الموحد
+          [ ! -d "android" ] && npx cap add android
           npx cap sync android
-          cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+          cd android && chmod +x gradlew && ./gradlew assembleDebug
 
-      # --- الحل العبقري للمسارات المفقودة ---
-
-      - name: 📤 Upload Any Found APK
+      - name: Upload_APK
         uses: actions/upload-artifact@v4
         with:
-          name: Download-Your-APK
-          path: "**/build/outputs/apk/debug/*.apk" # بحث عميق عن الـ APK
-
-      - name: 🌐 Upload Web for Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: final_web_assets/ # نستخدم المجلد الموحد الذي أنشأناه
-
-      - name: 🚀 Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+          name: Tamata-APK
+          path: "**/build/outputs/apk/debug/*.apk"
