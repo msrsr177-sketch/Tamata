@@ -1,8 +1,8 @@
-name: Universal Auto Deploy (Web & APK)
+name: Ultimate Universal Android & Web Deployer
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
@@ -11,53 +11,64 @@ permissions:
   id-token: write
 
 jobs:
-  build-process:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: 🚀 Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 🛠️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Setup Java
+      - name: ☕ Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install Dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: Build Web Project
+      - name: 📦 Install Dependencies
         run: |
-          # محاولة بناء المشروع وتحديد مجلد المخرجات تلقائياً
-          npm run build || true
-          # التأكد من وجود مجلد المخرجات (dist أو build أو www)
-          if [ -d "dist" ]; then echo "Folder dist exists";
-          elif [ -d "build" ]; then mv build dist;
-          elif [ -d "www" ]; then mv www dist;
-          else mkdir dist && echo "<html><body>Fallback</body></html>" > dist/index.html;
+          npm install --legacy-peer-deps
+          npm install -g @capacitor/cli
+
+      - name: 🌐 Build Web Project
+        run: |
+          npm run build --if-present
+          # البحث عن مجلد المخرجات وربطه
+          if [ -d "dist" ]; then echo "dist" > web_dir.txt;
+          elif [ -d "build" ]; then mv build dist && echo "dist" > web_dir.txt;
+          elif [ -d "www" ]; then mv www dist && echo "dist" > web_dir.txt;
+          else mkdir dist && echo "index" > dist/index.html && echo "dist" > web_dir.txt;
           fi
 
-      - name: Build Android APK
+      - name: 🤖 Build Android APK
         run: |
-          # تنصيب كاباسيتور أندرويد إذا مفقود
-          npm install @capacitor/android
           if [ ! -d "android" ]; then
+            npm install @capacitor/android
             npx cap add android
           fi
-          
-          # تعديل ملف الإعدادات ليقرأ من dist دائماً
-          sed -i 's/"webDir": ".*"/"webDir": "dist"/' capacitor.config.json || true
-          
           npx cap sync android
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: Upload APK
+      # --- الحل الجذري لمشكلة عدم ظهور الملفات ---
+
+      - name: 📤 Upload APK (Search & Upload)
         uses: actions/upload-artifact@v4
         with:
-          name: Tamata-App
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Tamata-Application-APK
+          # هذا السطر يبحث في كل المجلدات الفرعية عن أي ملف apk
+          path: "**/*.apk" 
+
+      - name: 📤 Upload Web (Search & Upload)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tamata-Web-Files
+          path: ./dist/
+          
+      - name: 🚀 Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+        if: always()
+        with:
+          artifact_name: github-pages
