@@ -1,0 +1,12 @@
+
+<resources>
+    <style name="Theme.Tamata" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="Theme.Tamata.Launch" parent="Theme.Tamata">
+        <item name="android:windowBackground">@drawable/splash</item>
+    </style>
+</resources>

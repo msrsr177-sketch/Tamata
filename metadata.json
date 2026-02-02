@@ -1,0 +1,7 @@
+{
+  "name": "Tamata ",
+  "description": "A premium, professionally designed digital products marketplace specializing in software, templates, and creative assets with an integrated AI discovery assistant.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
